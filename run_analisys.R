@@ -39,7 +39,8 @@ combined <- cbind(X, y, subject_test)
 write.csv(combined, "mergedData.csv")
 
 
-#install dplyr and tidyr packages and use it to create a dataset where the variables activity and subject form 2 diffeent rows
+#install dplyr and tidyr packages and use it to create a dataset where the variables "activity" and "subject"
+#form 2 different rows and so make he dataset tidy
 install.packages(c("dplyr", "tidyr"))
 library(dplyr)
 library(tidyr)
@@ -52,7 +53,7 @@ tidy <- df %>%
     group_by(activity, subject, measurement) %>%
     summarize(avgMeasurement = mean(value))
 
-# Create the tidy dataset
+# Create the tidy dataset in csv and txt format
 setwd("~/HumanActivityRecognition/")
 write.csv(tidy, "TidyData.csv")
 write.table(tidy, "TidyData.txt", row.name=FALSE)
