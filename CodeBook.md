@@ -1,6 +1,6 @@
 ##CodeBook
 
-The file "combinedTidyAverage.txt" represents the output of the run_analysis.R script.  
+The file "TidyData.txt" represents the output of the run_analysis.R script.  
 
 In "combinedTidyAverage.txt", the smartphone data is summarized.  Namely, all measurements of means and standard deviations
 are grouped by activity and subject and each of their average is recorded.  
