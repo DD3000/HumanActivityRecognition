@@ -1,113 +1,58 @@
+#This code create a tidy dataset 
 
-#######################################################################
-##
-##Data
+#Create the directory
+dir.create("~/HumanActivityRecognition/")
 
-#https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip 
+#Download and unzip the dataset
+setwd("~/coursera-cleaningData/coursera-gettingcleaningData")
+url <- 'https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip'
 
-#You should create one R script called run_analysis.R that does the following. 
-#Merges the training and the test sets to create one data set.
-#Extracts only the measurements on the mean and standard deviation for each measurement. 
-#Uses descriptive activity names to name the activities in the data set
-#Appropriately labels the data set with descriptive variable names. 
-#From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+download.file(url, "Dataset.zip")
+unzip("Dataset.zip")
+setwd("~/coursera-cleaningData/coursera-gettingcleaningData/UCI HAR Dataset")
 
+file.names <- paste0("test", '/', dir("test", pattern =".txt"))
 
+#Read and save all the useful tables and extract only mean and standard deviation
+X <- rbind(read.table("test/X_test.txt"), read.table("train/X_train.txt"))
+colnames(X) <- read.table("features.txt")[,2]
+X <- X[,grepl("mean|std", colnames(X))]
 
-#Set Working Directory
+# Merge the train and the test data
+y <- rbind(read.table("test/y_test.txt"), read.table("train/y_train.txt"))
+labelMap <- read.table('activity_labels.txt', stringsAsFactors=FALSE)
 
-setwd("c:/Users/jamse/Desktop/coursera/data-science/data-cleaning/files")
-
-#1. Merge the training and the test data.
-
-#reading the data general and training.
-
-features        <- read.table("./features.txt",header=FALSE)
-activityLabel   <- read.table("./activity_labels.txt",header=FALSE)
-subjectTrain    <-read.table("./train/subject_train.txt", header=FALSE)
-xTrain          <- read.table("./train/X_train.txt", header=FALSE)
-yTrain          <- read.table("./train/y_train.txt", header=FALSE)
-
-
-#Assign column names to the data above.
-
-colnames(activityLabel)<-c("activityId","activityType")
-colnames(subjectTrain) <- "subId"
-colnames(xTrain) <- features[,2]
-colnames(yTrain) <- "activityId"
+# Create a vector of names that can properly describe each measurement
+for(row in 1:nrow(labelMap)) {
+    label <- labelMap[row,1]
+    activity <- labelMap[row,2]
+    y[y == label] <- activity
+}
+colnames(y) <- c("activity")
 
 
-#Merging training Data...
+subject_test <- rbind(read.table("test/subject_test.txt"), 
+                      read.table("train/subject_train.txt"))
+colnames(subject_test) <- c("subject") # Subject is the person performing the test.
 
-trainData <- cbind(yTrain,subjectTrain,xTrain)
-
-#Reading the test Data
-
-subjectTest    <-read.table("./test/subject_test.txt", header=FALSE)
-xTest         <- read.table("./test/X_test.txt", header=FALSE)
-yTest         <- read.table("./test/y_test.txt", header=FALSE)
-
-# Assign column names.. same as for training data..
-
-colnames(subjectTest) <- "subId"
-colnames(xTest) <- features[,2]
-colnames(yTest) <- "activityId"
-
-# merging test Data
-testData <- cbind(yTest,subjectTest,xTest)
+combined <- cbind(X, y, subject_test)
+write.csv(combined, "mergedData.csv")
 
 
-#final merged data
-
-finalData <- rbind(trainData,testData)
-
-# creating a vector for column names to be used further
-
-colNames <- colnames(finalData);
-                  
+#install dplyr and tidyr packages and use it to create a dataset where the variables activity and subject form 2 diffeent rows
+install.packages(c("dplyr", "tidyr"))
+library(dplyr)
+library(tidyr)
 
 
-# 2. Extract only the measurements on the mean and standard deviation for each measurement
+df <- tbl_df(combined)
 
+tidy <- df %>%
+    gather(measurement, value, -activity, -subject) %>%
+    group_by(activity, subject, measurement) %>%
+    summarize(avgMeasurement = mean(value))
 
-data_mean_std <-finalData[,grepl("mean|std|subject|activityId",colnames(finalData))]
-
-
-
-#3. #Uses descriptive activity names to name the activities in the data set
-
-
-library(plyr)
-
-data_mean_std <- join(data_mean_std, activityLabel, by = "activityId", match = "first")
-
-data_mean_std <-data_mean_std[,-1]
-
-#4. Appropriately labels the data set with descriptive variable names.
-
-#Remove parentheses
-
-names(data_mean_std) <- gsub("\\(|\\)", "", names(data_mean_std), perl  = TRUE)
-
-#correct syntax in names
-
-names(data_mean_std) <- make.names(names(data_mean_std))
-
-#add descriptive names
-
-names(data_mean_std) <- gsub("Acc", "Acceleration", names(data_mean_std))
- names(data_mean_std) <- gsub("^t", "Time", names(data_mean_std))
-names(data_mean_std) <- gsub("^f", "Frequency", names(data_mean_std))
-names(data_mean_std) <- gsub("BodyBody", "Body", names(data_mean_std))
-names(data_mean_std) <- gsub("mean", "Mean", names(data_mean_std))
-names(data_mean_std) <- gsub("std", "Std", names(data_mean_std))
-names(data_mean_std) <- gsub("Freq", "Frequency", names(data_mean_std))
-names(data_mean_std) <- gsub("Mag", "Magnitude", names(data_mean_std))
-
-#creates a second, independent tidy data set with the average of each variable for each activity and each subject.
-
-
-tidydata_average_sub<- ddply(data_mean_std, c("subject","activity"), numcolwise(mean))
-
-
-write.table(tidydata_average_sub,file="tidydata.txt")
+# Create the tidy dataset
+setwd("~/HumanActivityRecognition/")
+write.csv(tidy, "TidyData.csv")
+write.table(tidy, "TidyData.txt", row.name=FALSE)
